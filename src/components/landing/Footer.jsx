@@ -20,6 +20,7 @@ export const Footer = () => {
         "For doctors": [
             { title: "Sanjiwani for doctors", href: "#" },
             { title: "Sanjiwani Profile", href: "#" },
+            { title: "Join as a doctor", href: "#" },
         ],
         "For hospitals": [
             { title: "Sanjiwani Profile", href: "#" },

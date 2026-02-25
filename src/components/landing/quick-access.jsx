@@ -13,7 +13,7 @@ export const QuickAccess = () => {
         { icon: Stethoscope, title: 'Find Doctors', desc: 'Consult with verified specialists.', href: "/doctors" },
         { icon: Hospital, title: 'Hospitals', desc: 'Real-time bed availability', href: "/hospitals" },
         { icon: FlaskConical, title: 'Diagnostics', desc: 'Book lab tests & health checkups', href: "/diagnostics" },
-        { icon: Heart, title: 'Emergency', desc: '24/7 emergency services', href: "#" },
+        { icon: Heart, title: 'Emergency', desc: '24/7 emergency services', href: "/emergency" },
     ];
 
     return (

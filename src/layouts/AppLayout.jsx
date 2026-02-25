@@ -17,7 +17,7 @@ export default function AppLayout({ children }) {
                 <SidebarHeader className="border-b">
                     <Link to="/dashboard" className="flex items-center gap-2">
                         <img src="/logo.png" alt="Sanjiwani Health Logo" width={24} height={24} />
-                        <span className="font-bold text-lg group-data-[collapsible=icon]:hidden">Sanjiwani</span>
+                        <span className="font-bold text-lg group-data-[collapsible=icon]:hidden textcolor-red text-red-500">Sanjiwani <span className='font-bold text-lg group-data-[collapsible=icon]:hidden textcolor-primary'> Health</span></span>
                     </Link>
                 </SidebarHeader>
                 <SidebarContent>

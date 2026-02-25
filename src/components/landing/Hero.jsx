@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { motionVariants } from '@/lib/animations';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 
 export const Hero = () => {
     return (
@@ -41,10 +42,10 @@ export const Hero = () => {
                     variants={motionVariants.slideUp(0.4)}
                 >
                     <Button size="lg" variant="default" className="w-full sm:w-auto shadow-[0_10px_30px_hsl(var(--primary)/0.15)]" asChild>
-                        <Link to="/doctors">Book Appointment</Link>
+                        <NavLink to="/doctors">Book Appointment</NavLink>
                     </Button>
                     <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
-                        <Link to="/emergency">Find Emergency Care</Link>
+                        <NavLink to="/emergency">Find Emergency Care</NavLink>
                     </Button>
                 </motion.div>
             </motion.div>

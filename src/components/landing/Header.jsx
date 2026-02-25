@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Menu, X } from 'lucide-react';
+import { Search, Menu, X, Stethoscope } from 'lucide-react';
+import { DoctorOnboardingModal } from './DoctorOnboardingModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,6 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 export const Header = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isDoctorModalOpen, setIsDoctorModalOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const searchInputRef = useRef(null);
     const isMobile = useIsMobile();
@@ -45,8 +47,10 @@ export const Header = () => {
     const navLinks = [
         { href: '/', name: 'Home' },
         { href: '/dashboard', name: 'My Appointments' },
+        { href: '/blogs', name: 'Blog' },
         { href: '#features', name: 'Our Services' },
     ];
+
 
     const searchTransition = { duration: 0.4, ease: 'easeInOut' };
 
@@ -58,9 +62,10 @@ export const Header = () => {
                     <div className="flex h-12 w-12 items-center justify-center rounded-full border border-primary/50 bg-card">
                         <img src="/logo.png" alt="Sanjiwani Health Logo" width={24} height={24} />
                     </div>
-                    <span className="font-bold text-xl text-primary hidden sm:inline-block">
+                    <span className="font-bold text-xl text-primary hidden sm:inline-block text-red-500">
                         Sanjiwani
                     </span>
+                    <span className='font-bold text-xl text-primary hidden sm:inline-block'>Health</span>
                 </Link>
 
                 {/* Center/Right Section Logic */}
@@ -134,6 +139,14 @@ export const Header = () => {
 
                 {/* Desktop Auth Buttons */}
                 <div className="hidden md:flex items-center gap-2 ml-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setIsDoctorModalOpen(true)}
+                        className="rounded-full border-primary/60 text-primary hover:bg-primary/10 hover:text-primary gap-1.5 text-sm"
+                    >
+                        <Stethoscope className="h-4 w-4" />
+                        Join as a Doctor
+                    </Button>
                     <Button variant="outline" className="rounded-full border-primary text-primary hover:bg-primary/10 hover:text-primary" asChild>
                         <Link to="/dashboard">Sign In</Link>
                     </Button>
@@ -184,6 +197,14 @@ export const Header = () => {
                                 </Link>
                             ))}
                             <div className="border-t border-border pt-4 flex flex-col gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => { setIsMenuOpen(false); setIsDoctorModalOpen(true); }}
+                                    className="w-full rounded-full border-primary/60 text-primary gap-1.5"
+                                >
+                                    <Stethoscope className="h-4 w-4" />
+                                    Join as a Doctor
+                                </Button>
                                 <Button variant="outline" className="w-full rounded-full border-primary text-primary" asChild>
                                     <Link to="/dashboard">Sign In</Link>
                                 </Button>
@@ -195,6 +216,11 @@ export const Header = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <DoctorOnboardingModal
+                isOpen={isDoctorModalOpen}
+                onClose={() => setIsDoctorModalOpen(false)}
+            />
         </header>
     );
 };

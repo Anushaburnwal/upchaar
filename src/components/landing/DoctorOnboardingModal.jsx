@@ -1,0 +1,577 @@
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    X, User, Stethoscope, Building2, ShieldCheck,
+    ChevronRight, ChevronLeft, Upload, CheckCircle2, AlertCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+/* ─── constants ─────────────────────────────────────────── */
+const SPECIALIZATIONS = [
+    'General Physician', 'Cardiologist', 'Dermatologist', 'Endocrinologist',
+    'ENT Specialist', 'Gastroenterologist', 'Gynaecologist', 'Neurologist',
+    'Nephrologist', 'Oncologist', 'Ophthalmologist', 'Orthopaedic Surgeon',
+    'Paediatrician', 'Psychiatrist', 'Pulmonologist', 'Radiologist',
+    'Rheumatologist', 'Urologist', 'Dentist', 'Physiotherapist', 'Other',
+];
+
+const INDIAN_STATES = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+    'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+    'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+    'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+    'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+    'Delhi', 'Jammu & Kashmir', 'Ladakh', 'Other',
+];
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Gujarati', 'Punjabi', 'Odia', 'Urdu'];
+
+const STEPS = [
+    { id: 1, label: 'Personal Info', icon: User },
+    { id: 2, label: 'Credentials', icon: Stethoscope },
+    { id: 3, label: 'Practice', icon: Building2 },
+    { id: 4, label: 'Verify', icon: ShieldCheck },
+];
+
+/* ─── helpers ────────────────────────────────────────────── */
+const initialData = {
+    // Step 1
+    fullName: '', email: '', phone: '', dob: '', gender: '', photo: null,
+    // Step 2
+    licenseNo: '', nmcNo: '', specialization: '', subSpecialization: '',
+    degree: '', passingYear: '', institution: '', additionalQualifications: '',
+    // Step 3
+    experience: '', consultationFee: '', clinicName: '', clinicAddress: '',
+    city: '', state: '', languages: [], availableDays: [], hoursFrom: '', hoursTo: '',
+    // Step 4
+    govtId: null, licenseDoc: null, degreeCert: null,
+    acceptTerms: false, declaration: false,
+};
+
+function validate(step, data) {
+    const errors = {};
+    if (step === 1) {
+        if (!data.fullName.trim()) errors.fullName = 'Full name is required';
+        if (!data.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) errors.email = 'Valid email required';
+        if (!data.phone.match(/^[6-9]\d{9}$/)) errors.phone = 'Valid 10-digit mobile number required';
+        if (!data.dob) errors.dob = 'Date of birth is required';
+        if (!data.gender) errors.gender = 'Gender is required';
+    }
+    if (step === 2) {
+        if (!data.licenseNo.trim()) errors.licenseNo = 'License number is required';
+        if (!data.nmcNo.trim()) errors.nmcNo = 'Registration number is required';
+        if (!data.specialization) errors.specialization = 'Specialization is required';
+        if (!data.degree.trim()) errors.degree = 'Degree is required';
+        if (!data.passingYear || data.passingYear < 1970 || data.passingYear > new Date().getFullYear())
+            errors.passingYear = 'Valid passing year required';
+        if (!data.institution.trim()) errors.institution = 'Institution name is required';
+    }
+    if (step === 3) {
+        if (!data.experience || data.experience < 0) errors.experience = 'Years of experience is required';
+        if (!data.consultationFee || data.consultationFee < 0) errors.consultationFee = 'Consultation fee is required';
+        if (!data.clinicName.trim()) errors.clinicName = 'Clinic/Hospital name is required';
+        if (!data.clinicAddress.trim()) errors.clinicAddress = 'Address is required';
+        if (!data.city.trim()) errors.city = 'City is required';
+        if (!data.state) errors.state = 'State is required';
+        if (data.languages.length === 0) errors.languages = 'Select at least one language';
+        if (data.availableDays.length === 0) errors.availableDays = 'Select at least one available day';
+        if (!data.hoursFrom) errors.hoursFrom = 'Start time is required';
+        if (!data.hoursTo) errors.hoursTo = 'End time is required';
+    }
+    if (step === 4) {
+        if (!data.govtId) errors.govtId = 'Government ID is required';
+        if (!data.licenseDoc) errors.licenseDoc = 'License document is required';
+        if (!data.acceptTerms) errors.acceptTerms = 'You must accept the terms';
+        if (!data.declaration) errors.declaration = 'Declaration is required';
+    }
+    return errors;
+}
+
+/* ─── sub-components ─────────────────────────────────────── */
+function FieldError({ msg }) {
+    if (!msg) return null;
+    return (
+        <span className="flex items-center gap-1 text-xs text-red-500 mt-1 animate-in fade-in slide-in-from-top-1">
+            <AlertCircle className="h-3 w-3 flex-shrink-0" />{msg}
+        </span>
+    );
+}
+
+function FormLabel({ children, required }) {
+    return (
+        <Label className="text-sm font-medium text-foreground/80 mb-1 block">
+            {children}{required && <span className="text-red-500 ml-0.5">*</span>}
+        </Label>
+    );
+}
+
+function FileUpload({ label, required, value, onChange, error, accept = '.pdf,.jpg,.jpeg,.png' }) {
+    return (
+        <div>
+            <FormLabel required={required}>{label}</FormLabel>
+            <label className={`flex flex-col items-center justify-center gap-2 w-full h-28 rounded-xl border-2 border-dashed cursor-pointer transition-colors
+                ${value ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 bg-muted/40'}`}>
+                <input type="file" accept={accept} className="hidden" onChange={e => onChange(e.target.files[0] || null)} />
+                {value ? (
+                    <>
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                        <span className="text-xs text-primary font-medium truncate max-w-[180px]">{value.name}</span>
+                    </>
+                ) : (
+                    <>
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Click to upload ({accept})</span>
+                    </>
+                )}
+            </label>
+            <FieldError msg={error} />
+        </div>
+    );
+}
+
+/* ─── step panels ─────────────────────────────────────────── */
+function Step1({ data, onChange, errors }) {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+                <FormLabel required>Full Name</FormLabel>
+                <Input id="fullName" placeholder="Dr. Ravi Kumar" value={data.fullName}
+                    onChange={e => onChange('fullName', e.target.value)} className={errors.fullName ? 'border-red-400' : ''} />
+                <FieldError msg={errors.fullName} />
+            </div>
+            <div>
+                <FormLabel required>Email Address</FormLabel>
+                <Input id="email" type="email" placeholder="doctor@email.com" value={data.email}
+                    onChange={e => onChange('email', e.target.value)} className={errors.email ? 'border-red-400' : ''} />
+                <FieldError msg={errors.email} />
+            </div>
+            <div>
+                <FormLabel required>Phone Number</FormLabel>
+                <Input id="phone" type="tel" placeholder="9XXXXXXXXX" value={data.phone}
+                    onChange={e => onChange('phone', e.target.value)} className={errors.phone ? 'border-red-400' : ''} />
+                <FieldError msg={errors.phone} />
+            </div>
+            <div>
+                <FormLabel required>Date of Birth</FormLabel>
+                <Input id="dob" type="date" value={data.dob}
+                    onChange={e => onChange('dob', e.target.value)} className={errors.dob ? 'border-red-400' : ''} />
+                <FieldError msg={errors.dob} />
+            </div>
+            <div>
+                <FormLabel required>Gender</FormLabel>
+                <select id="gender" value={data.gender} onChange={e => onChange('gender', e.target.value)}
+                    className={`w-full h-10 rounded-md border px-3 text-sm bg-background text-foreground focus:ring-2 focus:ring-ring focus:outline-none
+                        ${errors.gender ? 'border-red-400' : 'border-input'}`}>
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not">Prefer not to say</option>
+                </select>
+                <FieldError msg={errors.gender} />
+            </div>
+            <div className="sm:col-span-2">
+                <FormLabel>Profile Photo</FormLabel>
+                <label className={`flex flex-col items-center justify-center gap-2 w-full h-24 rounded-xl border-2 border-dashed cursor-pointer transition-colors
+                    ${data.photo ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 bg-muted/40'}`}>
+                    <input type="file" accept="image/*" className="hidden" onChange={e => onChange('photo', e.target.files[0] || null)} />
+                    {data.photo ? (
+                        <><CheckCircle2 className="h-5 w-5 text-primary" /><span className="text-xs text-primary font-medium">{data.photo.name}</span></>
+                    ) : (
+                        <><Upload className="h-5 w-5 text-muted-foreground" /><span className="text-xs text-muted-foreground">Upload profile photo (optional)</span></>
+                    )}
+                </label>
+            </div>
+        </div>
+    );
+}
+
+function Step2({ data, onChange, errors }) {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <FormLabel required>Medical License No.</FormLabel>
+                <Input id="licenseNo" placeholder="MH-2015-123456" value={data.licenseNo}
+                    onChange={e => onChange('licenseNo', e.target.value)} className={errors.licenseNo ? 'border-red-400' : ''} />
+                <FieldError msg={errors.licenseNo} />
+            </div>
+            <div>
+                <FormLabel required>NMC / MCI Registration No.</FormLabel>
+                <Input id="nmcNo" placeholder="NMC-XXXXXXX" value={data.nmcNo}
+                    onChange={e => onChange('nmcNo', e.target.value)} className={errors.nmcNo ? 'border-red-400' : ''} />
+                <FieldError msg={errors.nmcNo} />
+            </div>
+            <div>
+                <FormLabel required>Specialization</FormLabel>
+                <select id="specialization" value={data.specialization} onChange={e => onChange('specialization', e.target.value)}
+                    className={`w-full h-10 rounded-md border px-3 text-sm bg-background text-foreground focus:ring-2 focus:ring-ring focus:outline-none
+                        ${errors.specialization ? 'border-red-400' : 'border-input'}`}>
+                    <option value="">Select specialization</option>
+                    {SPECIALIZATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <FieldError msg={errors.specialization} />
+            </div>
+            <div>
+                <FormLabel>Sub-specialization</FormLabel>
+                <Input id="subSpecialization" placeholder="e.g. Interventional Cardiology" value={data.subSpecialization}
+                    onChange={e => onChange('subSpecialization', e.target.value)} />
+            </div>
+            <div>
+                <FormLabel required>Primary Degree</FormLabel>
+                <Input id="degree" placeholder="MBBS / BDS / BAMS / etc." value={data.degree}
+                    onChange={e => onChange('degree', e.target.value)} className={errors.degree ? 'border-red-400' : ''} />
+                <FieldError msg={errors.degree} />
+            </div>
+            <div>
+                <FormLabel required>Year of Passing</FormLabel>
+                <Input id="passingYear" type="number" placeholder="2012" min="1970" max={new Date().getFullYear()} value={data.passingYear}
+                    onChange={e => onChange('passingYear', e.target.value)} className={errors.passingYear ? 'border-red-400' : ''} />
+                <FieldError msg={errors.passingYear} />
+            </div>
+            <div className="sm:col-span-2">
+                <FormLabel required>College / University</FormLabel>
+                <Input id="institution" placeholder="AIIMS New Delhi" value={data.institution}
+                    onChange={e => onChange('institution', e.target.value)} className={errors.institution ? 'border-red-400' : ''} />
+                <FieldError msg={errors.institution} />
+            </div>
+            <div className="sm:col-span-2">
+                <FormLabel>Additional Qualifications</FormLabel>
+                <Input id="additionalQualifications" placeholder="MD, MS, DM, MCh, DNB, Fellowships…" value={data.additionalQualifications}
+                    onChange={e => onChange('additionalQualifications', e.target.value)} />
+            </div>
+        </div>
+    );
+}
+
+function Step3({ data, onChange, errors }) {
+    const toggleMulti = (field, val) => {
+        const arr = data[field];
+        onChange(field, arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
+    };
+
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <FormLabel required>Years of Experience</FormLabel>
+                <Input id="experience" type="number" placeholder="5" min="0" max="60" value={data.experience}
+                    onChange={e => onChange('experience', e.target.value)} className={errors.experience ? 'border-red-400' : ''} />
+                <FieldError msg={errors.experience} />
+            </div>
+            <div>
+                <FormLabel required>Consultation Fee (₹)</FormLabel>
+                <Input id="consultationFee" type="number" placeholder="500" min="0" value={data.consultationFee}
+                    onChange={e => onChange('consultationFee', e.target.value)} className={errors.consultationFee ? 'border-red-400' : ''} />
+                <FieldError msg={errors.consultationFee} />
+            </div>
+            <div className="sm:col-span-2">
+                <FormLabel required>Clinic / Hospital Name</FormLabel>
+                <Input id="clinicName" placeholder="Apollo Clinic" value={data.clinicName}
+                    onChange={e => onChange('clinicName', e.target.value)} className={errors.clinicName ? 'border-red-400' : ''} />
+                <FieldError msg={errors.clinicName} />
+            </div>
+            <div className="sm:col-span-2">
+                <FormLabel required>Clinic Address</FormLabel>
+                <Input id="clinicAddress" placeholder="Street, Area, Locality" value={data.clinicAddress}
+                    onChange={e => onChange('clinicAddress', e.target.value)} className={errors.clinicAddress ? 'border-red-400' : ''} />
+                <FieldError msg={errors.clinicAddress} />
+            </div>
+            <div>
+                <FormLabel required>City</FormLabel>
+                <Input id="city" placeholder="Mumbai" value={data.city}
+                    onChange={e => onChange('city', e.target.value)} className={errors.city ? 'border-red-400' : ''} />
+                <FieldError msg={errors.city} />
+            </div>
+            <div>
+                <FormLabel required>State</FormLabel>
+                <select id="state" value={data.state} onChange={e => onChange('state', e.target.value)}
+                    className={`w-full h-10 rounded-md border px-3 text-sm bg-background text-foreground focus:ring-2 focus:ring-ring focus:outline-none
+                        ${errors.state ? 'border-red-400' : 'border-input'}`}>
+                    <option value="">Select state</option>
+                    {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <FieldError msg={errors.state} />
+            </div>
+
+            {/* Languages */}
+            <div className="sm:col-span-2">
+                <FormLabel required>Languages Spoken</FormLabel>
+                <div className="flex flex-wrap gap-2 mt-1">
+                    {LANGUAGES.map(lang => (
+                        <button key={lang} type="button"
+                            onClick={() => toggleMulti('languages', lang)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200
+                                ${data.languages.includes(lang)
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'bg-card border-border text-foreground/70 hover:border-primary/50'}`}>
+                            {lang}
+                        </button>
+                    ))}
+                </div>
+                <FieldError msg={errors.languages} />
+            </div>
+
+            {/* Available Days */}
+            <div className="sm:col-span-2">
+                <FormLabel required>Available Days</FormLabel>
+                <div className="flex flex-wrap gap-2 mt-1">
+                    {DAYS.map(day => (
+                        <button key={day} type="button"
+                            onClick={() => toggleMulti('availableDays', day)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200
+                                ${data.availableDays.includes(day)
+                                    ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                                    : 'bg-card border-border text-foreground/70 hover:border-primary/50'}`}>
+                            {day.slice(0, 3)}
+                        </button>
+                    ))}
+                </div>
+                <FieldError msg={errors.availableDays} />
+            </div>
+
+            {/* Consultation Hours */}
+            <div>
+                <FormLabel required>Consultation From</FormLabel>
+                <Input id="hoursFrom" type="time" value={data.hoursFrom}
+                    onChange={e => onChange('hoursFrom', e.target.value)} className={errors.hoursFrom ? 'border-red-400' : ''} />
+                <FieldError msg={errors.hoursFrom} />
+            </div>
+            <div>
+                <FormLabel required>Consultation To</FormLabel>
+                <Input id="hoursTo" type="time" value={data.hoursTo}
+                    onChange={e => onChange('hoursTo', e.target.value)} className={errors.hoursTo ? 'border-red-400' : ''} />
+                <FieldError msg={errors.hoursTo} />
+            </div>
+        </div>
+    );
+}
+
+function Step4({ data, onChange, errors }) {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <FileUpload label="Aadhaar / Govt. Photo ID" required value={data.govtId}
+                    onChange={v => onChange('govtId', v)} error={errors.govtId} />
+            </div>
+            <div>
+                <FileUpload label="Medical License Document" required value={data.licenseDoc}
+                    onChange={v => onChange('licenseDoc', v)} error={errors.licenseDoc} />
+            </div>
+            <div className="sm:col-span-2">
+                <FileUpload label="Degree / Marksheet (Optional)" value={data.degreeCert}
+                    onChange={v => onChange('degreeCert', v)} error={errors.degreeCert} />
+            </div>
+
+            <div className="sm:col-span-2 space-y-3 pt-2">
+                <label className={`flex items-start gap-3 cursor-pointer group rounded-xl p-3 border transition-colors
+                    ${errors.acceptTerms ? 'border-red-300 bg-red-50/50' : 'border-border hover:border-primary/40 hover:bg-primary/5'}`}>
+                    <input type="checkbox" checked={data.acceptTerms} onChange={e => onChange('acceptTerms', e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-primary flex-shrink-0" />
+                    <span className="text-sm text-foreground/80">
+                        I have read and agree to the{' '}
+                        <a href="#" className="text-primary underline underline-offset-2 hover:opacity-80">Terms of Service</a>{' '}
+                        and{' '}
+                        <a href="#" className="text-primary underline underline-offset-2 hover:opacity-80">Privacy Policy</a> of Sanjiwani Health.
+                        <span className="text-red-500 ml-0.5">*</span>
+                    </span>
+                </label>
+                <FieldError msg={errors.acceptTerms} />
+
+                <label className={`flex items-start gap-3 cursor-pointer group rounded-xl p-3 border transition-colors
+                    ${errors.declaration ? 'border-red-300 bg-red-50/50' : 'border-border hover:border-primary/40 hover:bg-primary/5'}`}>
+                    <input type="checkbox" checked={data.declaration} onChange={e => onChange('declaration', e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-primary flex-shrink-0" />
+                    <span className="text-sm text-foreground/80">
+                        I hereby declare that all information provided is true and accurate to the best of my knowledge.
+                        I understand that providing false information may result in permanent disqualification.
+                        <span className="text-red-500 ml-0.5">*</span>
+                    </span>
+                </label>
+                <FieldError msg={errors.declaration} />
+            </div>
+        </div>
+    );
+}
+
+/* ─── success screen ─────────────────────────────────────── */
+function SuccessScreen({ onClose }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex flex-col items-center justify-center py-16 px-8 text-center gap-6">
+            <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+                <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-teal-400 flex items-center justify-center shadow-2xl">
+                    <CheckCircle2 className="h-12 w-12 text-white" />
+                </div>
+            </div>
+            <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Application Submitted!</h2>
+                <p className="text-muted-foreground max-w-sm">
+                    Thank you for joining Sanjiwani Health. Our team will review your credentials and reach out within 2–3 business days.
+                </p>
+            </div>
+            <Button onClick={onClose} className="rounded-full px-8 shadow-[0_8px_24px_hsl(var(--primary)/0.3)]">
+                Back to Home
+            </Button>
+        </motion.div>
+    );
+}
+
+/* ─── main modal ─────────────────────────────────────────── */
+export function DoctorOnboardingModal({ isOpen, onClose }) {
+    const [step, setStep] = useState(1);
+    const [data, setData] = useState(initialData);
+    const [errors, setErrors] = useState({});
+    const [direction, setDirection] = useState(1); // 1 = forward, -1 = back
+    const [submitted, setSubmitted] = useState(false);
+
+    const onChange = useCallback((field, value) => {
+        setData(prev => ({ ...prev, [field]: value }));
+        setErrors(prev => { const e = { ...prev }; delete e[field]; return e; });
+    }, []);
+
+    const goNext = () => {
+        const errs = validate(step, data);
+        if (Object.keys(errs).length) { setErrors(errs); return; }
+        setDirection(1);
+        if (step === 4) { setSubmitted(true); return; }
+        setStep(s => s + 1);
+        setErrors({});
+    };
+
+    const goBack = () => {
+        setDirection(-1);
+        setStep(s => s - 1);
+        setErrors({});
+    };
+
+    const handleClose = () => {
+        onClose();
+        // reset after animation
+        setTimeout(() => { setStep(1); setData(initialData); setErrors({}); setSubmitted(false); }, 300);
+    };
+
+    const variants = {
+        enter: d => ({ x: d > 0 ? 60 : -60, opacity: 0 }),
+        center: { x: 0, opacity: 1 },
+        exit: d => ({ x: d > 0 ? -60 : 60, opacity: 0 }),
+    };
+
+    const stepComponents = [Step1, Step2, Step3, Step4];
+    const CurrentStep = stepComponents[step - 1];
+
+    if (!isOpen) return null;
+
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <>
+                    {/* Backdrop */}
+                    <motion.div
+                        key="backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={handleClose}
+                        className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                    />
+
+                    {/* Panel */}
+                    <motion.div
+                        key="panel"
+                        initial={{ opacity: 0, y: 40, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 40, scale: 0.97 }}
+                        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+                    >
+                        <div className="relative w-full max-w-2xl max-h-[90vh] bg-card rounded-3xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto">
+
+                            {/* Gradient header */}
+                            <div className="relative bg-gradient-to-br from-primary via-teal-500 to-teal-400 px-6 pt-6 pb-8 flex-shrink-0">
+                                <button onClick={handleClose}
+                                    className="absolute right-4 top-4 h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors">
+                                    <X className="h-4 w-4" />
+                                </button>
+
+                                {!submitted && (
+                                    <>
+                                        <p className="text-white/80 text-sm font-medium mb-1">Doctor Registration</p>
+                                        <h1 className="text-white text-2xl font-bold">Join as a Doctor</h1>
+
+                                        {/* Step indicator */}
+                                        <div className="flex items-center gap-1.5 mt-5">
+                                            {STEPS.map((s, i) => {
+                                                const Icon = s.icon;
+                                                const isActive = s.id === step;
+                                                const isDone = s.id < step;
+                                                return (
+                                                    <div key={s.id} className="flex items-center gap-1.5">
+                                                        <div className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-300
+                                                            ${isActive ? 'bg-white text-primary shadow-lg' : isDone ? 'bg-white/30 text-white' : 'bg-white/10 text-white/50'}`}>
+                                                            <Icon className="h-3 w-3 flex-shrink-0" />
+                                                            <span className="hidden sm:inline">{s.label}</span>
+                                                            <span className="sm:hidden">{s.id}</span>
+                                                        </div>
+                                                        {i < STEPS.length - 1 && (
+                                                            <div className={`h-0.5 w-4 sm:w-6 rounded-full transition-colors ${isDone ? 'bg-white/60' : 'bg-white/20'}`} />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto">
+                                {submitted ? (
+                                    <SuccessScreen onClose={handleClose} />
+                                ) : (
+                                    <>
+                                        <div className="overflow-hidden relative">
+                                            <AnimatePresence custom={direction} mode="wait">
+                                                <motion.div
+                                                    key={step}
+                                                    custom={direction}
+                                                    variants={variants}
+                                                    initial="enter"
+                                                    animate="center"
+                                                    exit="exit"
+                                                    transition={{ duration: 0.28, ease: 'easeInOut' }}
+                                                    className="px-6 py-6">
+                                                    <CurrentStep data={data} onChange={onChange} errors={errors} />
+                                                </motion.div>
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-border bg-card/80 backdrop-blur-sm flex-shrink-0 sticky bottom-0">
+                                            <p className="text-xs text-muted-foreground">Step {step} of {STEPS.length}</p>
+                                            <div className="flex gap-3">
+                                                {step > 1 && (
+                                                    <Button variant="outline" onClick={goBack} className="rounded-full gap-1">
+                                                        <ChevronLeft className="h-4 w-4" /> Back
+                                                    </Button>
+                                                )}
+                                                <Button onClick={goNext} className="rounded-full gap-1 shadow-[0_8px_20px_hsl(var(--primary)/0.25)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.4)] transition-shadow">
+                                                    {step === 4 ? 'Submit Application' : 'Next'}
+                                                    {step < 4 && <ChevronRight className="h-4 w-4" />}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                </>
+            )}
+        </AnimatePresence>
+    );
+}

@@ -1,4 +1,4 @@
-import { Hero } from '@/components/landing/hero';
+import { Hero } from '@/components/landing/Hero';
 import { TrustBadges } from '@/components/landing/trust-badges';
 import { QuickAccess } from '@/components/landing/quick-access';
 import { MsmeSection } from '@/components/landing/msme-section';
@@ -7,8 +7,8 @@ import { Features } from '@/components/landing/features';
 import { HowItWorks } from '@/components/landing/how-it-works';
 import { QuoteSection } from '@/components/landing/quote-section';
 import { NewsletterSignUp } from '@/components/landing/newsletter-signup';
-import { Footer } from '@/components/landing/footer';
-import { Header } from '@/components/landing/header';
+import { Footer } from '@/components/landing/Footer';
+import { Header } from '@/components/landing/Header';
 
 export default function LandingPage() {
     return (
