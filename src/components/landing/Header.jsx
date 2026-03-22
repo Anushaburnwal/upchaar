@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Menu, X, Stethoscope, UserCircle, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
+import { Search, Menu, X, Stethoscope, LogOut, LayoutDashboard, ChevronDown } from 'lucide-react';
 import { DoctorOnboardingModal } from './DoctorOnboardingModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     NavigationMenu,
     NavigationMenuItem,
-    NavigationMenuLink,
     NavigationMenuList,
     navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
@@ -15,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/auth/AuthContext.jsx';
+import { usePatient } from '@/patient/context/PatientContext.jsx';
 
 // ── Helper: get user's initials from full name ────────────
 function getInitials(name) {
@@ -38,7 +38,7 @@ const ROLE_LABELS = {
 
 // ── Dashboard path per role ───────────────────────────────
 const ROLE_DASHBOARD = {
-    patient: '/',
+    patient: '/patient/dashboard',
     doctor: '/doctor/dashboard',
     clinic: '/clinic/dashboard',
     medical: '/medical/dashboard',
@@ -56,6 +56,7 @@ export const Header = () => {
     const navigate = useNavigate();
 
     const { user, profile, signOut, loading } = useAuth();
+    const { signOut: patientSignOut } = usePatient();
     const isLoggedIn = !loading && !!user && !!profile;
 
     // Close profile dropdown on outside click
@@ -86,13 +87,15 @@ export const Header = () => {
     const handleSignOut = async () => {
         setIsProfileOpen(false);
         setIsMenuOpen(false);
+        // Sign out from both AuthContext (Supabase session) and PatientContext (local state)
         await signOut();
+        await patientSignOut();
         navigate('/');
     };
 
     const navLinks = [
         { href: '/', name: 'Home' },
-        { href: '/dashboard', name: 'My Appointments' },
+        { href: '/patient/dashboard', name: 'My Appointments' },
         { href: '/blogs', name: 'Blog' },
         { href: '#features', name: 'Our Services' },
     ];
@@ -217,9 +220,12 @@ export const Header = () => {
                                         <NavigationMenuList>
                                             {navLinks.map(link => (
                                                 <NavigationMenuItem key={link.name}>
-                                                    <NavigationMenuLink href={link.href} className={cn(navigationMenuTriggerStyle(), "bg-transparent text-foreground hover:bg-primary/10 rounded-full font-medium")}>
+                                                    <Link
+                                                        to={link.href}
+                                                        className={cn(navigationMenuTriggerStyle(), "bg-transparent text-foreground hover:bg-primary/10 rounded-full font-medium")}
+                                                    >
                                                         {link.name}
-                                                    </NavigationMenuLink>
+                                                    </Link>
                                                 </NavigationMenuItem>
                                             ))}
                                         </NavigationMenuList>
