@@ -283,9 +283,12 @@ export function BlogProvider({ children }) {
         }
     };
 
+    const myPosts = useMemo(() =>
+        blogger ? posts.filter(p => p.author_id === blogger.id) : [], [posts, blogger]);
+
     return (
         <BlogContext.Provider value={{
-            posts, postsLoading, blogger, loading,
+            posts, postsLoading, blogger, loading, myPosts,
             loginBlogger, logoutBlogger, updateBlogger,
             publishPost, saveDraft, updatePost, deletePost,
             getMyPosts, getPublishedPosts, refreshPosts: loadPosts,

@@ -42,7 +42,7 @@ export default function BloggerLayout() {
         return <BloggerSuspended />;
     }
 
-    const initials = blogger.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    const initials = (blogger?.name || 'B').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
     // Shared sidebar inner
     const SidebarInner = ({ onClose }) => (
