@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MessageSquare, User, Phone, Mail, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { supabase } from '@/lib/supabase.js';
 
 export const FeedbackForm = () => {
     const [form, setForm] = useState({
@@ -24,13 +25,17 @@ export const FeedbackForm = () => {
         setLoading(true);
         setStatus({ type: '', msg: '' });
 
-        // Simulate API call
         try {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            console.log('Feedback submitted:', form);
+            const { error } = await supabase.functions.invoke('send-feedback', {
+                body: form
+            });
+
+            if (error) throw error;
+
             setStatus({ type: 'success', msg: 'Thank you! Your feedback has been submitted.' });
             setForm({ name: '', phone: '', email: '', feedback: '' });
         } catch (err) {
+            console.error('Feedback error:', err);
             setStatus({ type: 'error', msg: 'Something went wrong. Please try again.' });
         } finally {
             setLoading(false);
