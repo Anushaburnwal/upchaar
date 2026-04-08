@@ -351,6 +351,7 @@ export default function ClinicDashboard() {
                 <a href="#" className="text-xs font-semibold text-teal-600 hover:underline">View All</a>
               </div>
 
+            </div>
           </div>
         </div>
       </main>
