@@ -158,7 +158,7 @@ export function AppRoutes() {
                 ═══════════════════════════════════════ */}
             <Route path="/patient/login" element={<PatientLogin />} />
             <Route path="/patient/register" element={<PatientRegister />} />
-            <Route path="/patient/dashboard" element={<RequireAuth><PatientDashboard /></RequireAuth>} />
+            <Route path="/patient/dashboard" element={<RequireAuth><AppLayout><PatientDashboard /></AppLayout></RequireAuth>} />
 
 
             {/* ═══════════════════════════════════════
