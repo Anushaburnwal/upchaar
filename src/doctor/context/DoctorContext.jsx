@@ -1,18 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase.js';
 import { isStrongPassword, PASSWORD_RULE_MESSAGE, withAuthTimeout } from '@/lib/auth.js';
+import { uploadAvatar } from '@/lib/uploadImage.js';
 
 /** Upload a profile picture to Supabase Storage and return the public URL */
-export async function uploadDoctorAvatar(file, doctorId) {
-    const ext = file.name.split('.').pop();
-    const path = `doctors/${doctorId}/avatar_${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-        .from('doctor-docs')
-        .upload(path, file, { upsert: true, contentType: file.type });
-    if (uploadError) throw new Error('Upload failed: ' + uploadError.message);
-    const { data } = supabase.storage.from('doctor-docs').getPublicUrl(path);
-    return data.publicUrl;
-}
+export const uploadDoctorAvatar = uploadAvatar;
 
 const DoctorContext = createContext(null);
 const DEFAULT_AVAILABLE_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

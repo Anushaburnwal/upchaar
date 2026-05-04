@@ -117,7 +117,7 @@ export default function DoctorProfile() {
         setAvatarPreview(previewUrl);
         setUploadingAvatar(true);
         try {
-            const publicUrl = await uploadDoctorAvatar(file, doctorRecord?.id || doctor.id);
+            const publicUrl = await uploadDoctorAvatar(file, doctor.id);
             setForm(f => ({ ...f, avatarUrl: publicUrl }));
             setAvatarPreview(publicUrl);
         } catch (err) {
@@ -127,7 +127,7 @@ export default function DoctorProfile() {
             setUploadingAvatar(false);
             if (fileRef.current) fileRef.current.value = '';
         }
-    }, [doctorRecord?.id, doctor.id, form.avatarUrl]);
+    }, [doctor.id, form.avatarUrl]);
 
     const handleCopyKey = () => {
         if (!doctor.secretKey) return;
