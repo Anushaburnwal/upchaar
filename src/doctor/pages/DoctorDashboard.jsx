@@ -180,29 +180,28 @@ export default function DoctorDashboard() {
                 // 2. Fetch linked organizations
                 const { data: staffLinks, error: staffError } = await supabase
                     .from('staff_links')
-                    .select('*, organization:organization_id(id, full_name, clinics(*), medicals(*))')
+                    .select('organization_id, organization_type')
                     .eq('doctor_id', doctorRecord.id);
 
                 if (staffError) throw staffError;
 
-                const orgs = (staffLinks || []).map(link => {
-                    const profile = link.organization;
-                    if (!profile) return null;
-
-                    // A profile can have one clinic or one medical store
-                    const orgDetails = (profile.clinics && profile.clinics[0]) || (profile.medicals && profile.medicals[0]);
+                const orgPromises = (staffLinks || []).map(async (link) => {
+                    const table = link.organization_type === 'medical' ? 'medicals' : 'clinics';
+                    const { data } = await supabase
+                        .from(table)
+                        .select('id, name, address, city, state, profile_id')
+                        .eq('profile_id', link.organization_id)
+                        .maybeSingle();
                     
-                    if (!orgDetails) return null;
-
+                    if (!data) return null;
                     return {
-                        ...orgDetails,
-                        id: orgDetails.id, // Entry ID for timetables
-                        profile_id: profile.id, // Profile ID for appointments
+                        ...data,
                         type: link.organization_type,
-                        displayName: orgDetails.name || profile.full_name
+                        displayName: data.name
                     };
-                }).filter(Boolean);
+                });
 
+                const orgs = (await Promise.all(orgPromises)).filter(Boolean);
                 setLinkedOrgs(orgs);
 
             } catch (error) {
@@ -217,7 +216,6 @@ export default function DoctorDashboard() {
         fetchData();
     }, [doctorRecord?.id]);
 
-    const clinics = useMemo(() => parseClinics(doctorRecord?.clinic_name || doctor?.clinicName), [doctorRecord?.clinic_name, doctor?.clinicName]);
     const today = new Date().toISOString().slice(0, 10);
     const todayAppointments = useMemo(() => appointments.filter(item => String(item.date || '').slice(0, 10) === today), [appointments, today]);
 
@@ -229,23 +227,26 @@ export default function DoctorDashboard() {
     ], [linkedOrgs.length, todayAppointments, doctorRecord?.total_revenue, doctor?.totalRevenue]);
 
     const clinicCards = useMemo(() => {
-        if (!clinics.length) return [];
+        if (!linkedOrgs.length) return [];
 
-        return clinics.map(clinicName => {
+        return linkedOrgs.map(org => {
+            const orgName = org.displayName || org.name;
             const relatedAppointments = appointments.filter(apt => {
-                if (!apt.clinic_name) return clinics.length === 1;
-                return apt.clinic_name === clinicName || String(apt.clinic_name).includes(clinicName);
+                if (apt.org_profile_id && apt.org_profile_id === org.profile_id) return true;
+                if (!apt.clinic_name) return linkedOrgs.length === 1;
+                return apt.clinic_name === orgName || String(apt.clinic_name).includes(orgName);
             });
 
             return {
-                clinicName,
+                org,
+                clinicName: orgName,
                 totalPatients: relatedAppointments.length,
                 todayPatients: relatedAppointments.filter(apt => String(apt.date || '').slice(0, 10) === today).length,
                 upcoming: relatedAppointments.find(apt => String(apt.date || '').slice(0, 10) >= today) || null,
                 appointments: relatedAppointments,
             };
         });
-    }, [appointments, clinics, today]);
+    }, [appointments, linkedOrgs, today]);
 
     const [selectedClinic, setSelectedClinic] = useState(null);
 
@@ -332,7 +333,7 @@ export default function DoctorDashboard() {
                                 initial={{ opacity: 0, y: 12 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.06 }}
-                                onClick={() => setSelectedClinic(clinic)}
+                                onClick={() => setSelectedOrgForAppointments(clinic.org)}
                                 className="text-left rounded-3xl border border-slate-200 bg-slate-50/70 hover:bg-white hover:border-teal-300 hover:shadow-md transition-all p-5"
                             >
                                 <div className="flex items-center justify-between mb-4">
