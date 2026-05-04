@@ -303,7 +303,7 @@ export const Header = () => {
                             <Button
                                 variant="outline"
                                 onClick={() => setIsDoctorModalOpen(true)}
-                                className="hidden lg:flex rounded-full border-teal-200 text-teal-600 hover:bg-teal-50 hover:border-teal-300 gap-1.5 text-xs lg:text-sm h-8 lg:h-10 transition-all font-bold"
+                                className=" lg:flex rounded-full border-teal-200 text-teal-600 hover:bg-teal-50 hover:border-teal-300 gap-1.5 text-xs lg:text-sm h-8 lg:h-10 transition-all font-bold"
                             >
                                 <Stethoscope className="h-3 w-3 lg:h-4 lg:w-4" />
                                 Join as a Doctor
@@ -357,10 +357,10 @@ export const Header = () => {
                             {navLinks.map(link => {
                                 if (link.href.startsWith('#')) {
                                     return (
-                                        <a 
-                                            key={link.href} 
-                                            href={link.href} 
-                                            className="text-foreground font-medium py-2" 
+                                        <a
+                                            key={link.href}
+                                            href={link.href}
+                                            className="text-foreground font-medium py-2"
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 const target = document.querySelector(link.href);
@@ -396,7 +396,7 @@ export const Header = () => {
                                         </div>
                                         <Button
                                             variant="outline"
-                                                className="w-full rounded-full border-teal-300 text-teal-700 gap-2"
+                                            className="w-full rounded-full border-teal-300 text-teal-700 gap-2"
                                             onClick={() => {
                                                 setIsMenuOpen(false);
                                                 navigate(ROLE_DASHBOARD[activeProfile?.profile_type] ?? '/');
